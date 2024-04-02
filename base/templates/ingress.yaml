@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "base.fullname" . -}}
+{{- $svcPort := .Values.service.port -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+{{ include "base.labels" . | indent 4 }}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.service.host | quote }}
+    kubernetes.io/ingress.class: {{ .Values.service.ingress | quote }}
+    networking.gke.io/v1beta1.FrontendConfig: "my-frontend-config" 
+    networking.gke.io/managed-certificates: managed-cert-for-ingress 
+    kubernetes.io/ingress.global-static-ip-name: {{.Values.service.static-IP}}
+spec:
+  rules:
+    - host: {{ .Values.service.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path | quote }}
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ssl-redirect
+                port:
+                  name: use-annotation
+          - path: {{ .Values.ingress.path | quote }}
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+{{- end }}
